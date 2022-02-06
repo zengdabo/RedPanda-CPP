@@ -1,0 +1,6 @@
+<p class="md-image-container">
+  <img class="md-image" src="{{ .Destination | relURL }}" alt="{{ .Text }}" />
+</p>
+{{ with .Text}}
+<p class="md-image-title">{{ . }}</p>
+{{ end }} 

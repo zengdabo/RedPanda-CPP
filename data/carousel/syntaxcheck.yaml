@@ -1,0 +1,4 @@
+weight: 5
+title: "自动语法检查"
+description: "<p>在编辑代码时，自动检查和提示程序中可能的语法和使用错误</p>"
+image: "img/carousel/syntaxcheck.gif"

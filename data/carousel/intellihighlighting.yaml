@@ -1,0 +1,4 @@
+weight: 3
+title: "智能语法高亮"
+description: "<p>在普通语法高亮的基础上，进一步用不同颜色区分全局变量、本地变量、类定义、宏定义、命名空间、枚举等各种语法元素</p>"
+image: "img/carousel/intellihighlighting.png"

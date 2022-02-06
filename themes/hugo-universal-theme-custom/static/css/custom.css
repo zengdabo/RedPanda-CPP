@@ -1,0 +1,21 @@
+.box-image-text .image {
+  min-height: 190px;
+  max-height: 190px;
+}
+
+.box-image-text .image img {
+  max-height: 190px;
+  margin: auto;
+}
+
+.box-simple {
+  min-height: 230px;
+}
+
+.md-image {
+  max-width: 100%;
+}
+
+.md-image-container {
+  text-align: center;
+}

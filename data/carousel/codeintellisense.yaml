@@ -1,0 +1,4 @@
+weight: 2
+title: "智能代码补全"
+description: "<p>在用户输入代码时，提供实时的代码补全建议</p>"
+image: "img/carousel/codeintellisense.gif"

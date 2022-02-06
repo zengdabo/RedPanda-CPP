@@ -1,0 +1,21 @@
+{{ template "_internal/google_analytics.html" . }}
+<script src="{{ "js/jquery-3.1.1.min.js" | relURL }}" ></script>
+<script src="{{ "js/bootstrap.min.js" | relURL }}" ></script>
+
+<script src="{{ "js/jquery.cookie.min.js" | relURL }}"></script>
+<script src="{{ "js/jquery.waypoints.min.js" | relURL }}"></script>
+<script src="{{ "js/jquery.counterup.min.js" | relURL }}"></script>
+<script src="{{ "js/jquery-parallax.js" | relURL }}"></script>
+{{ if and .Site.Params.enableGoogleMaps .Site.Params.googleMapsApiKey }}
+<script src="//maps.googleapis.com/maps/api/js?key={{.Site.Params.googleMapsApiKey}}&v=3.exp"></script>
+<script src="{{ "js/hpneo.gmaps.js" | relURL }}"></script>
+<script src="{{ "js/gmaps.init.js" | relURL }}"></script>
+{{ end }}
+{{ if and .Site.Params.enableRecaptchaInContactForm .Site.Params.googleRecaptchaKey }}
+<script src="//www.google.com/recaptcha/api.js" async defer></script>
+{{ end }}
+<script src="{{ "js/front.js" | relURL }}"></script>
+
+<!-- owl carousel -->
+<script src="{{ "js/owl.carousel.min.js" | relURL }}"></script>
+

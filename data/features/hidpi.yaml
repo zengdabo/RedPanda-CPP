@@ -1,0 +1,5 @@
+weight: 6
+name: "多屏幕"
+icon: "fas fa-desktop"
+url: ""
+description: "小熊猫C++提供了完善的高分辨率和多显示器支持，能够在多个不同DPI设置的显示器间自由切换，同时提供完善的显示效果，便于教学和展示。"

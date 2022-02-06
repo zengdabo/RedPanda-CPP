@@ -1,0 +1,5 @@
+weight: 1
+name: "操作简便"
+icon: "fas fa-hand-peace"
+url: ""
+description: "小熊猫C++无需复杂的安装和配置，打开即可直接编辑程序文件；无需创建项目，点击工具栏上按钮即可编译、运行和调试程序。"
