@@ -1,4 +1,4 @@
 weight: 4
-title: "自动缩进"
-description: "<p>在编辑代码时，自动计算设置当前行的缩进，以保证代码的整洁和美观</p>"
+title: "Auto Indents"
+description: "<p>Auto calculate and set the indents of each line while inputing</p>"
 image: "img/carousel/autoindent.gif"

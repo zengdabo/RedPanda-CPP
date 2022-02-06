@@ -1,10 +1,10 @@
-baseurl = "https://royqh1979.gitee.io/redpandacpp/" 
-title = "小熊猫C++"
+baseurl = "https://royqh1979.github.com/redpandacpp/" 
+title = "Red Panda C++"
 theme = "hugo-universal-theme-custom"
 themesDir = "themes/"
-languageCode = "zh"
+languageCode = "en"
 # Site language. Available translations in the theme's `/i18n` directory.
-defaultContentLanguage = "zh"
+defaultContentLanguage = "en"
 # Enable comments by entering your Disqus shortname
 disqusShortname = ""
 # Enable Google Analytics by entering your tracking code
@@ -26,19 +26,19 @@ paginate = 10
 
 # Main menu
 [[menu.main]]
-    name       = "首页"
+    name       = "Home"
     identifier = "menu.home"
     url        = "/"
     weight     = 1
 
 [[menu.main]]
-    name       = "文档"
+    name       = "Documents"
     identifier = "menu.documents"
     url        = "/img/template-homepage.png"
     weight    = 2
 
 [[menu.main]]
-    name       = "教程"
+    name       = "Tutorials"
     identifier = "section.tutorials"
     url        = ""
     weight     = 1
@@ -46,13 +46,13 @@ paginate = 10
     post       = 1
 
 [[menu.main]]
-    name       = "入门教程"
+    name       = "Introduction Tutorials"
     url        = "/blog/2022/02/05/basictutorial/"
     weight     = 1
     parent     = "section.tutorials"
 
 [[menu.main]]
-    name       = "功能介绍"
+    name       = "Usages"
     identifier = "section.usages"
     url        = ""
     weight     = 1
@@ -60,45 +60,45 @@ paginate = 10
     post       = 2
 
 [[menu.main]]
-    name       = "调试"
+    name       = "Debug"
     url        = "/blog/2022/02/04/debug/"
     weight     = 1
     parent     = "section.usages"
 
 [[menu.main]]
-    name       = "试题集与OJ"
+    name       = "Problem Set & OJ"
     url        = "/blog/2022/02/04/problemset/"
     weight     = 2
     parent     = "section.usages"
 
 
 [[menu.main]]
-    name       = "下载"
+    name       = "Download"
     identifier = "menu.download"
     url        = "/download/"
     weight     = 3
 
 [[menu.main]]
-    name       = "日志"
+    name       = "Blogs"
     identifier = "menu.blogs"
     url        = "/blog/"
     weight     = 4
 
 [[menu.main]]
-    name       = "支持本项目"
+    name       = "Support"
     identifier = "menu.support"
     url        = "/support/"
     weight     = 5
 
 [[menu.main]]
-    name       = "贡献者"
+    name       = "Contributors"
     identifier = "menu.contributors"
     url        = "/contributors/"
     weight     = 6
 
 [[menu.main]]
     identifier = "contact"
-    name       = "联系方式"
+    name       = "Contact"
     url        = "/contact/"
     weight     = 7
 
@@ -115,12 +115,6 @@ paginate = 10
     name = "Gitee"
     url = "https://gitee.com/royqh1979/RedPanda-CPP"
     pre = "<i class='fab fa-2x fa-git-alt'></i>"
-
-[[menu.topbar]]
-    weight = 3
-    name = "知乎"
-    url = "https://www.zhihu.com/column/c_1440014168041054208"
-    pre = "<i class='fab fa-2x fa-zhihu'></i>"
 
 [params]
     viewMorePostLink = "/blog/"
@@ -179,13 +173,13 @@ paginate = 10
     # googleRecaptchaKey = ""
 
     # about_us = ""
-    copyright = "Copyright (c) 2021 - 2022, 瞿华(royqh1979@gmail.com); all rights reserved."
+    copyright = "Copyright (c) 2021 - 2022, Roy Qu (royqh1979@gmail.com); all rights reserved."
 
     # Format dates with Go's time formatting
     date_format = "January 2, 2006"
 
     disabled_logo = false
-    logo_text = "小熊猫C++"
+    logo_text = "Red Panda C++"
 
     logo = "img/logo.svg"
 #    logo_small = "img/logo-small.png"
@@ -259,7 +253,7 @@ paginate = 10
 
 [params.recent_posts]
     enable = true
-    title = "日志"
+    title = "Blogs"
     # subtitle = "Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper. Aenean ultricies mi vitae est. Mauris placerat eleifend leo."
     hide_summary = true
 

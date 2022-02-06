@@ -1,4 +1,4 @@
 weight: 7
-title: "调试"
-description: "<p>直观易用的调试功能，帮助用户调查和解决程序中的缺陷</p>"
+title: "Debug"
+description: "<p>Powerful and easy to use, the debugger interferes with program execution and provides user with the information on what’s happening under the hood</p>"
 image: "img/carousel/debug.gif"
