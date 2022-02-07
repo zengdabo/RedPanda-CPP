@@ -156,6 +156,7 @@ private:
             const QString& command,
             const QString& args,
             const QString& value,
+            const QString& templateArgs,
             int line,
             StatementKind kind,
             const StatementScope& scope,
@@ -170,6 +171,7 @@ private:
             const QString &command,
             const QString &args,
             const QString& value,
+            const QString& templateArgs,
             int line,
             StatementKind kind,
             const StatementScope& scope,
@@ -185,6 +187,9 @@ private:
 
     void internalClear();
 
+    int calcTemplateArgPos(const QString& argName, const QString& templateArgs);
+    QString getTemplateArg(int pos, const QString& templateArgs);
+    QStringList splitTemplateArgs(const QString& templateArgs);
     bool checkForCatchBlock();
     bool checkForEnum();
     bool checkForForBlock();
@@ -195,7 +200,7 @@ private:
     bool checkForPreprocessor();
     bool checkForScope();
     void checkForSkipStatement();
-    bool checkForStructs();
+    bool checkForStructs(QString& templateArgs, int& dis, bool & isFriend);
     bool checkForTypedef();
     bool checkForTypedefEnum();
     bool checkForTypedefStruct();
@@ -353,7 +358,7 @@ private:
     void handlePreprocessor();
     void handleScope();
     bool handleStatement();
-    void handleStructs(bool isTypedef = false);
+    void handleStructs(const QString& templateArgs, int dis, bool isFriend, bool isTypedef = false);
     void handleUsing();
     void handleVar();
     void internalParse(const QString& fileName);

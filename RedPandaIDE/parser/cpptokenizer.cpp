@@ -305,10 +305,10 @@ QString CppTokenizer::getWord(bool bSkipParenthesis, bool bSkipArray, bool bSkip
             offset = mCurrent; //we don't skip
             skipTemplateArgs();
 
-            if (!bFoundTemplate) {
+//            if (!bFoundTemplate) {
                 result += QString(offset, mCurrent-offset);
                 skipToNextToken();
-            }
+//            }
         } else if (bSkipArray && (*mCurrent == '[')) {
             // Append array stuff
             while(true) {

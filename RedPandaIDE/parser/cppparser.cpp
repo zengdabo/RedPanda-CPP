@@ -851,6 +851,7 @@ void CppParser::parseHardDefines()
               define->name,
               define->value,
               define->args,
+              "",
               -1,
               StatementKind::skPreprocessor,
               StatementScope::ssGlobal,
@@ -1060,6 +1061,7 @@ PStatement CppParser::addInheritedStatement(const PStatement& derived, const PSt
       inherit->command,
       inherit->args,
       inherit->value,
+      inherit->templateArgs,
       inherit->line,
       inherit->kind,
       inherit->scope,
@@ -1074,7 +1076,8 @@ PStatement CppParser::addInheritedStatement(const PStatement& derived, const PSt
 PStatement CppParser::addChildStatement(const PStatement& parent, const QString &fileName,
                                         const QString &hintText, const QString &aType,
                                         const QString &command, const QString &args,
-                                        const QString &value, int line, StatementKind kind,
+                                        const QString &value,  const QString& templateArgs,
+                                        int line, StatementKind kind,
                                         const StatementScope& scope, const StatementClassScope& classScope,
                                         bool isDefinition, bool isStatic)
 {
@@ -1086,6 +1089,7 @@ PStatement CppParser::addChildStatement(const PStatement& parent, const QString 
                 command,
                 args,
                 value,
+                templateArgs,
                 line,
                 kind,
                 scope,
@@ -1101,6 +1105,7 @@ PStatement CppParser::addStatement(const PStatement& parent,
                                    const QString &command,
                                    const QString &args,
                                    const QString &value,
+                                   const QString& templateArgs,
                                    int line, StatementKind kind,
                                    const StatementScope& scope,
                                    const StatementClassScope& classScope, bool isDefinition, bool isStatic)
@@ -1154,6 +1159,7 @@ PStatement CppParser::addStatement(const PStatement& parent,
     result->noNameArgs = noNameArgs;
     result->value = value;
     result->kind = kind;
+    result->templateArgs = templateArgs;
     //result->inheritanceList;
     result->scope = scope;
     result->classScope = classScope;
@@ -1370,6 +1376,78 @@ void CppParser::internalClear()
     mInlineNamespaceEndSkips.clear();
 }
 
+int CppParser::calcTemplateArgPos(const QString &argName, const QString& templateArgs)
+{
+    QStringList argList = splitTemplateArgs(templateArgs);
+    qDebug()<<argList;
+    for (int i=0;i<argList.count();i++) {
+        QString arg = argList[i];
+        QVector<QStringRef> tempList = arg.splitRef(' ',QString::SplitBehavior::SkipEmptyParts);
+        if (tempList.size()>1 && tempList[1]==argName)
+            return i;
+    }
+
+    return -1;
+}
+
+QString CppParser::getTemplateArg(int pos, const QString &templateArgs)
+{
+    QStringList argList = splitTemplateArgs(templateArgs);
+    if (pos>=0 && pos<argList.count()) {
+        return argList[pos];
+    }
+    return "";
+}
+
+QStringList CppParser::splitTemplateArgs(const QString &templateArgs)
+{
+    QStringList result;
+    if (!templateArgs.endsWith('>'))
+        return result;
+    int startPos = templateArgs.indexOf('<');
+    if (startPos<0)
+        return result;
+    int pos = startPos + 1;
+    int endPos = templateArgs.length()-1;
+    int bracketLevel = 0;
+    QString arg;
+    QStringList tempList;
+    while (pos<endPos) {
+        QChar ch = templateArgs[pos];
+        if (bracketLevel!=0) {
+            switch(ch.unicode()) {
+            case '<':
+                bracketLevel++;
+                break;
+            case '>':
+                bracketLevel--;
+                break;
+            case '\t':
+                ch = ' ';
+            }
+            arg+=ch;
+        } else {
+            switch(ch.unicode()) {
+            case ',':
+                result.append(arg);
+                break;
+            case '<':
+                bracketLevel++;
+                arg+=ch;
+                break;
+            case '\t':
+                arg+=' ';
+                break;
+            default:
+                arg+=ch;
+            }
+        }
+        pos++;
+    }
+    result.append(arg);
+    return result;
+}
+
 bool CppParser::checkForCatchBlock()
 {
 //    return  mIndex < mTokenizer.tokenCount() &&
@@ -1405,6 +1483,10 @@ bool CppParser::checkForMethod(QString &sType, QString &sName, QString &sArgs, b
                    || scope->kind == StatementKind::skClass)) { //don't care function declaration in the function's
         return false;
     }
+
+    //skip template parameters
+    if (mIndex < mTokenizer.tokenCount() && mTokenizer[mIndex]->text.startsWith("template<"))
+        mIndex++;
 
     // Function template:
     // compiler directives (>= 0 words), added to type
@@ -1536,13 +1618,27 @@ void CppParser::checkForSkipStatement()
     }
 }
 
-bool CppParser::checkForStructs()
+bool CppParser::checkForStructs(QString& templateArgs, int &dis, bool& isFriend)
 {
-    int dis = 0;
-    if ((mTokenizer[mIndex]->text == "friend")
-            || (mTokenizer[mIndex]->text == "public")
-            || (mTokenizer[mIndex]->text == "private"))
+    templateArgs="";
+    dis = 0;
+    isFriend = false;
+    if (mTokenizer[mIndex]->text == "friend") {
         dis = 1;
+        isFriend = true;
+    } else if ((mTokenizer[mIndex]->text == "public")
+            || (mTokenizer[mIndex]->text == "private")) {
+        dis = 1;
+    } else if (mTokenizer[mIndex]->text.startsWith("template<")) {
+        templateArgs = mTokenizer[mIndex+dis]->text;
+        dis++;
+    }
+    if (mIndex >= mTokenizer.tokenCount() - 2 - dis)
+        return false;
+    if (mTokenizer[mIndex+dis]->text.startsWith("template<")) {
+        templateArgs = mTokenizer[mIndex+dis]->text;
+        dis++;
+    }
     if (mIndex >= mTokenizer.tokenCount() - 2 - dis)
         return false;
     QString word = mTokenizer[mIndex+dis]->text;
@@ -1846,6 +1942,7 @@ void CppParser::handleCatchBlock()
       "",
       "",
       "",
+      "",
       startLine,
       StatementKind::skBlock,
       getScope(),
@@ -1913,6 +2010,7 @@ void CppParser::handleEnum()
                         enumName,
                         "",
                         "",
+                        "",
                         startLine,
                         StatementKind::skEnumClassType,
                         getScope(),
@@ -1926,6 +2024,7 @@ void CppParser::handleEnum()
                         "enum "+enumName,
                         "enum",
                         enumName,
+                        "",
                         "",
                         "",
                         startLine,
@@ -1970,6 +2069,7 @@ void CppParser::handleEnum()
                           cmd,
                           args,
                           "",
+                          "",
                           mTokenizer[mIndex]->line,
                           StatementKind::skEnum,
                           getScope(),
@@ -1987,6 +2087,7 @@ void CppParser::handleEnum()
                           cmd,
                           args,
                           "",
+                          "",
                           mTokenizer[mIndex]->line,
                           StatementKind::skEnum,
                           getScope(),
@@ -2001,6 +2102,7 @@ void CppParser::handleEnum()
                       lastType,
                       cmd,
                       args,
+                      "",
                       "",
                       mTokenizer[mIndex]->line,
                       StatementKind::skEnum,
@@ -2050,6 +2152,7 @@ void CppParser::handleForBlock()
                 getCurrentScope(),
                 mCurrentFile,
                 "", // override hint
+                "",
                 "",
                 "",
                 "",
@@ -2186,6 +2289,7 @@ void CppParser::handleMethod(const QString &sType, const QString &sName, const Q
                         scopelessName,
                         sArgs,
                         "",
+                        "",
                         //mTokenizer[mIndex - 1]^.Line,
                         startLine,
                         functionKind,
@@ -2206,6 +2310,7 @@ void CppParser::handleMethod(const QString &sType, const QString &sName, const Q
                             "this",
                             "",
                             "",
+                            "",
                             startLine,
                             StatementKind::skVariable,
                             StatementScope::ssLocal,
@@ -2222,6 +2327,7 @@ void CppParser::handleMethod(const QString &sType, const QString &sName, const Q
                         "__func__",
                         "[]",
                         "\""+scopelessName+"\"",
+                        "",
                         startLine+1,
                         StatementKind::skVariable,
                         StatementScope::ssLocal,
@@ -2236,6 +2342,7 @@ void CppParser::handleMethod(const QString &sType, const QString &sName, const Q
                         sType,
                         scopelessName,
                         sArgs,
+                        "",
                         "",
                         //mTokenizer[mIndex - 1]^.Line,
                         startLine,
@@ -2308,6 +2415,7 @@ void CppParser::handleNamespace()
             command, // command
             "", // args
             "", // values
+            "", // templateArgs
             //mTokenizer[mIndex]^.Line,
             startLine,
             StatementKind::skNamespaceAlias,
@@ -2338,6 +2446,7 @@ void CppParser::handleNamespace()
             command, // command
             "", // args
             "", // values
+            "", // templateArgs
             startLine,
             StatementKind::skNamespace,
             getScope(),
@@ -2386,6 +2495,7 @@ void CppParser::handleOtherTypedefs()
                     newType,
                     "",
                     "",
+                    "", // templateArgs
                     startLine,
                     StatementKind::skTypedef,
                     getScope(),
@@ -2439,6 +2549,7 @@ void CppParser::handleOtherTypedefs()
                         newType,
                         mTokenizer[mIndex + 1]->text,
                         "",
+                        "", // templateArgs
                         startLine,
                         StatementKind::skTypedef,
                         getScope(),
@@ -2461,6 +2572,7 @@ void CppParser::handleOtherTypedefs()
                             newType,
                             "",
                             "",
+                            "", // templateArgs
                             startLine,
                             StatementKind::skTypedef,
                             getScope(),
@@ -2533,6 +2645,7 @@ void CppParser::handlePreprocessor()
         name,
         args,
         value,
+        "", // templateArgs
         mTokenizer[mIndex]->line,
         StatementKind::skPreprocessor,
         StatementScope::ssGlobal,
@@ -2563,6 +2676,7 @@ void CppParser::handleScope()
 bool CppParser::handleStatement()
 {
     QString S1,S2,S3;
+    int t1,t2,t3;
     bool isStatic, isFriend;
     int idx=getCurrentBlockEndSkip();
     int idx2=getCurrentBlockBeginSkip();
@@ -2595,6 +2709,7 @@ bool CppParser::handleStatement()
             "",
             "",
             "",
+            "", // templateArgs
             //mTokenizer[mIndex]^.Line,
             mTokenizer[mIndex]->line,
             StatementKind::skBlock,
@@ -2623,7 +2738,7 @@ bool CppParser::handleStatement()
         if (mIndex+1 < mTokenizer.tokenCount()) {
             if (checkForTypedefStruct()) { // typedef struct something
                 mIndex++; // skip 'typedef'
-                handleStructs(true);
+                handleStructs("",0,false,true);
             } else if (checkForTypedefEnum()) { // typedef enum something
                 mIndex++; // skip 'typedef'
                 handleEnum();
@@ -2635,8 +2750,8 @@ bool CppParser::handleStatement()
         handleNamespace();
     } else if (checkForUsing()) {
         handleUsing();
-    } else if (checkForStructs()) {
-        handleStructs(false);
+    } else if (checkForStructs(S1,t1, isFriend)) {
+        handleStructs(S1,t1,isFriend,false);
     } else if (checkForMethod(S1, S2, S3, isStatic, isFriend)) {
         handleMethod(S1, S2, S3, isStatic, isFriend); // don't recalculate parts
     } else if (checkForVar()) {
@@ -2650,16 +2765,11 @@ bool CppParser::handleStatement()
 
 }
 
-void CppParser::handleStructs(bool isTypedef)
+void CppParser::handleStructs(const QString& templateArgs, int dis, bool isFriend, bool isTypedef)
 {
-    bool isFriend = false;
-    QString prefix = mTokenizer[mIndex]->text;
-    if (prefix == "friend") {
-        isFriend = true;
-        mIndex++;
-    }
+    mIndex += dis;
     // Check if were dealing with a struct or union
-    prefix = mTokenizer[mIndex]->text;
+    QString prefix = mTokenizer[mIndex]->text;
     bool isStruct = ("struct" == prefix) || ("union"==prefix);
     int startLine = mTokenizer[mIndex]->line;
 
@@ -2696,6 +2806,7 @@ void CppParser::handleStructs(bool isTypedef)
                                 newType,
                                 "",
                                 "",
+                                templateArgs, // templateArgs
                                 startLine,
                                 StatementKind::skTypedef,
                                 getScope(),
@@ -2743,6 +2854,7 @@ void CppParser::handleStructs(bool isTypedef)
                                     command, // command
                                     "", // args
                                     "", // values
+                                    templateArgs, // templateArgs
                                     startLine,
                                     StatementKind::skClass,
                                     getScope(),
@@ -2766,6 +2878,7 @@ void CppParser::handleStructs(bool isTypedef)
                                     command, // command
                                     "", // args
                                     "", // values
+                                    templateArgs, // templateArgs
                                     startLine,
                                     StatementKind::skClass,
                                     getScope(),
@@ -2849,6 +2962,7 @@ void CppParser::handleStructs(bool isTypedef)
                                             "__"+command,
                                             "",
                                             "",
+                                            templateArgs, // templateArgs
                                             startLine,
                                             StatementKind::skClass,
                                             getScope(),
@@ -2866,6 +2980,7 @@ void CppParser::handleStructs(bool isTypedef)
                                   command,
                                   "",
                                   "",
+                                  "", // templateArgs
                                   mTokenizer[mIndex]->line,
                                   StatementKind::skTypedef,
                                   getScope(),
@@ -2882,6 +2997,7 @@ void CppParser::handleStructs(bool isTypedef)
                                   command,
                                   args,
                                   "",
+                                  "", // templateArgs
                                   mTokenizer[i]->line,
                                   StatementKind::skVariable,
                                   getScope(),
@@ -2913,6 +3029,7 @@ void CppParser::handleStructs(bool isTypedef)
                       "",
                       "",
                       "",
+                      "", // templateArgs
                       startLine,
                       StatementKind::skBlock,
                       getScope(),
@@ -2960,6 +3077,7 @@ void CppParser::handleUsing()
                     fullName, // command
                     "", // args
                     "", // values
+                    "", // templateArgs
                     startLine,
                     StatementKind::skTypedef,
                     getScope(),
@@ -2985,6 +3103,7 @@ void CppParser::handleUsing()
                         usingName, // command
                         "", // args
                         "", // values
+                        "", // templateArgs
                         startLine,
                         StatementKind::skAlias,
                         getScope(),
@@ -3151,6 +3270,7 @@ void CppParser::handleVar()
                       cmd,
                       args,
                       "",
+                      "", // templateArgs
                       mTokenizer[mIndex]->line,
                       StatementKind::skVariable,
                       getScope(),
@@ -3699,6 +3819,7 @@ PEvalStatement CppParser::doEvalMemberAccess(const QString &fileName,
                         && STLContainers.contains(typeStatement->fullName)
                         && result->kind == EvalStatementKind::Variable
                         && result->baseStatement) {
+                    //hack for stl
                     PStatement parentScope = result->baseStatement->parentScope.lock();
                     QString typeName = findFirstTemplateParamOf(fileName,result->baseStatement->type,
                                                     parentScope);
@@ -3708,7 +3829,29 @@ PEvalStatement CppParser::doEvalMemberAccess(const QString &fileName,
                         result = doCreateEvalType(fileName,typeStatement);
                         result->kind = EvalStatementKind::Variable;
                     }
+                } else if (typeStatement
+                        && result->kind == EvalStatementKind::Variable
+                        && result->baseStatement) {
+                    PStatement operStatement = typeStatement->children.value("operator[]");
+                    if (operStatement) {
+                        QString typeName = operStatement->type;
+                        if (!typeStatement->templateArgs.isEmpty()) {
+                            int pos = calcTemplateArgPos(typeName, typeStatement->templateArgs);
+                            if (pos>=0) {
+                                typeName = getTemplateArg(pos,result->baseStatement->type);
+                            }
+                            qDebug()<<typeName;
+                            PStatement parentScope = result->baseStatement->parentScope.lock();
+                            typeStatement = findTypeDefinitionOf(fileName, typeName,
+                                                             parentScope);
+                            if (typeStatement) {
+                                result = doCreateEvalType(fileName,typeStatement);
+                                result->kind = EvalStatementKind::Variable;
+                            }
+                        }
+                    }
                 }
+
             }
         } else if (phraseExpression[pos] == ".") {
             pos++;
@@ -4361,6 +4504,7 @@ void CppParser::scanMethodArgs(const PStatement& functionStatement, const QStrin
                             s.mid(varStartPos,varEndPos-varStartPos+1), // a
                             args,
                             "",
+                            "", // templateArgs
                             functionStatement->definitionLine,
                             StatementKind::skParameter,
                             StatementScope::ssLocal,
