@@ -108,6 +108,16 @@ void CppParser::parseFile(const QString &fileName, bool inProject, const QMap<QS
         if (onlyIfNotParsed && mTranslationUnits.contains(fileName))
             return;
 
+        CXUnsavedFile *unsavedFiles=new CXUnsavedFile[unmodifiedFiles.count()];
+        QList<QByteArray> unsavedFilenames;
+        int i=0;
+        for (auto iter = unmodifiedFiles.begin(); iter!=unmodifiedFiles.end();iter++) {
+            unsavedFilenames[i]=iter.key
+            unsavedFiles[i].Filename=iter.key().toLocal8Bit().data();
+            unsavedFiles[i].Contents=iter.key().toUtf8().data();
+            unsavedFiles[i].Length=;
+            i++;
+        }
         if (!mTranslationUnits.contains(fileName)) {
             CXTranslationUnit unit = mTranslationUnits.value(fileName);
             //todo:prepare unsavedFiles
@@ -122,6 +132,7 @@ void CppParser::parseFile(const QString &fileName, bool inProject, const QMap<QS
                                                                 CXTranslationUnit_None);
             mTranslationUnits.insert(fileName,unit);
         }
+        delete[] unsavedFiles;
     }
 }
 
