@@ -35,6 +35,8 @@ CppParser::CppParser(QObject *parent) : QObject(parent),
     updateSerialId();
     mUniqId = 0;
     mParsing = false;
+
+    mIndex = clang_createIndex(0, 1);
     //mStatementList ; // owns the objects
     //mFilesToScan;
     //mIncludePaths;
@@ -46,8 +48,7 @@ CppParser::CppParser(QObject *parent) : QObject(parent),
     mParseLocalHeaders = true;
     mParseGlobalHeaders = true;
     mLockCount = 0;
-    mIsSystemHeader = false;
-    mIsHeader = false;
+
     mIsProjectFile = false;
 
     mCppKeywords = CppKeywords;
@@ -73,15 +74,54 @@ CppParser::~CppParser()
         QCoreApplication* app = QApplication::instance();
         app->processEvents();
     }
+    foreach(CXTranslationUnit unit, mTranslationUnits.values()) {
+        clang_disposeTranslationUnit(unit);
+    }
+    mTranslationUnits.clear();
+    clang_disposeIndex(mIndex);
 }
 
-void CppParser::addHardDefineByLine(const QString &line)
+void CppParser::parseFile(const QString &fileName, bool inProject, const QMap<QString, QString> &unmodifiedFiles, bool onlyIfNotParsed, bool updateView)
 {
-    QMutexLocker  locker(&mMutex);
-    if (line.startsWith('#')) {
-        mPreprocessor.addHardDefineByLine(line.mid(1).trimmed());
-    } else {
-        mPreprocessor.addHardDefineByLine(line);
+    if (!mEnabled)
+        return;
+    {
+        QMutexLocker locker(&mMutex);
+        if (mParsing || mLockCount>0)
+            return;
+        updateSerialId();
+        mParsing = true;
+        if (updateView)
+            emit onBusy();
+        emit onStartParsing();
+    }
+    {
+        auto action = finally([&,this]{
+            mParsing = false;
+
+            if (updateView)
+                emit onEndParsing(mFilesScannedCount,1);
+            else
+                emit onEndParsing(mFilesScannedCount,0);
+        });
+        QString fName = fileName;
+        if (onlyIfNotParsed && mTranslationUnits.contains(fileName))
+            return;
+
+        if (!mTranslationUnits.contains(fileName)) {
+            CXTranslationUnit unit = mTranslationUnits.value(fileName);
+            //todo:prepare unsavedFiles
+            clang_reparseTranslationUnit(unit,0,nullptr,clang_defaultReparseOptions(unit));
+        } else {
+            CXTranslationUnit unit = clang_parseTranslationUnit(mIndex,
+                                                                fileName.toLocal8Bit().data(),
+                                                                nullptr,
+                                                                0,
+                                                                nullptr,
+                                                                0,
+                                                                CXTranslationUnit_None);
+            mTranslationUnits.insert(fileName,unit);
+        }
     }
 }
 
@@ -732,69 +772,6 @@ bool CppParser::isSystemHeaderFile(const QString &fileName)
 {
     QMutexLocker locker(&mMutex);
     return ::isSystemHeaderFile(fileName,mPreprocessor.includePaths());
-}
-
-void CppParser::parseFile(const QString &fileName, bool inProject, bool onlyIfNotParsed, bool updateView)
-{
-    if (!mEnabled)
-        return;
-    {
-        QMutexLocker locker(&mMutex);
-        if (mParsing || mLockCount>0)
-            return;
-        updateSerialId();
-        mParsing = true;
-        if (updateView)
-            emit onBusy();
-        emit onStartParsing();
-    }
-    {
-        auto action = finally([&,this]{
-            mParsing = false;
-
-            if (updateView)
-                emit onEndParsing(mFilesScannedCount,1);
-            else
-                emit onEndParsing(mFilesScannedCount,0);
-        });
-        QString fName = fileName;
-        if (onlyIfNotParsed && mPreprocessor.scannedFiles().contains(fName))
-            return;
-
-        QSet<QString> files = calculateFilesToBeReparsed(fileName);
-        internalInvalidateFiles(files);
-
-        if (inProject)
-            mProjectFiles.insert(fileName);
-        else {
-            mProjectFiles.remove(fileName);
-        }
-
-        // Parse from disk or stream
-        mFilesToScanCount = files.count();
-        mFilesScannedCount = 0;
-
-        // parse header files in the first parse
-        foreach (const QString& file,files) {
-            if (isHFile(file)) {
-                mFilesScannedCount++;
-                emit onProgress(file,mFilesToScanCount,mFilesScannedCount);
-                if (!mPreprocessor.scannedFiles().contains(file)) {
-                    internalParse(file);
-                }
-            }
-        }
-        //we only parse CFile in the second parse
-        foreach (const QString& file,files) {
-            if (!isHFile(file)) {
-                mFilesScannedCount++;
-                emit onProgress(file,mFilesToScanCount,mFilesScannedCount);
-                if (!mPreprocessor.scannedFiles().contains(file)) {
-                    internalParse(file);
-                }
-            }
-        }
-    }
 }
 
 void CppParser::parseFileList(bool updateView)

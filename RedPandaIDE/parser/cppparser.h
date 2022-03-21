@@ -21,6 +21,7 @@
 #include <QObject>
 #include <QThread>
 #include <QVector>
+#include <clang-c/Index.h>
 #include "statementmodel.h"
 #include "cpptokenizer.h"
 #include "cpppreprocessor.h"
@@ -34,7 +35,24 @@ public:
     explicit CppParser(QObject *parent = nullptr);
     ~CppParser();
 
-    void addHardDefineByLine(const QString& line);
+    void parseFile(const QString& fileName, bool inProject,
+                   const QMap<QString,QString>& unmodifiedFiles,
+                   bool onlyIfNotParsed = false, bool updateView = true);
+
+    //class browser
+
+    //code completion
+
+    //rename symbol
+
+    //goto definition/declaration
+
+    //syntax coloring
+
+
+
+    //syntax checking
+
     void addFileToScan(const QString& value, bool inProject = false);
     void addIncludePath(const QString& value);
     void addProjectIncludePath(const QString& value);
@@ -435,10 +453,11 @@ private:
     QString mSerialId;
     int mUniqId;
     bool mEnabled;
-    int mIndex;
-    bool mIsHeader;
-    bool mIsSystemHeader;
-    QString mCurrentFile;
+
+    CXIndex mIndex;
+
+    QMap<QString,CXTranslationUnit> mTranslationUnits;
+
 //  stack list , each element is a list of one/many scopes(like intypedef struct  s1,s2;
 //  It's used for store scope nesting infos
     QVector<PStatement> mCurrentScope;
