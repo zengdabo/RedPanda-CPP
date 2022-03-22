@@ -12,6 +12,8 @@ Red Panda C++ Version 1.0.1
   - fix: when editor font is too small, fold signs on the gutter are not correctly displayed
   - fix: expand fold signs on the gutter are not correct
   - enhancement: auto restore mainwindow when open files in one instance
+  - fix: the problem & problem set panel can't be correctly , if problem set is enabled
+  - fix: disable code completion doesn't correctly disable project parser
 
 Red Panda C++ Version 1.0.0
   - fix: calculation for code snippets's tab stop positions is not correct

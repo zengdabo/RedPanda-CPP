@@ -648,10 +648,6 @@ void MainWindow::applySettings()
     ui->txtProblemCaseExpected->setFont(caseEditorFont);
 
     mTcpServer.close();
-    int idxProblem = ui->tabMessages->indexOf(ui->tabProblem);
-    ui->tabMessages->setTabEnabled(idxProblem,pSettings->executor().enableProblemSet());
-    int idxProblemSet = ui->tabInfos->indexOf(ui->tabProblemSet);
-    ui->tabInfos->setTabEnabled(idxProblemSet,pSettings->executor().enableProblemSet());
     if (pSettings->executor().enableProblemSet()) {
         if (pSettings->executor().enableCompetitiveCompanion()) {
             if (!mTcpServer.listen(QHostAddress::LocalHost,pSettings->executor().competivieCompanionPort())) {
@@ -664,16 +660,13 @@ void MainWindow::applySettings()
 //                                      +tr("Or You can choose a different port number and try again."));
             }
         }
-        if (idxProblem<0)
-            ui->tabMessages->addTab(ui->tabProblem,tr("Problem"));
-        if (idxProblemSet<0)
-            ui->tabInfos->addTab(ui->tabProblemSet, tr("Problem Set"));
-    } else {
-        if (idxProblem>=0)
-            ui->tabMessages->removeTab(idxProblem);
-        if (idxProblemSet>=0)
-            ui->tabInfos->removeTab(idxProblemSet);
     }
+
+    showHideInfosTab(ui->tabProblemSet,pSettings->ui().showProblemSet()
+                     && pSettings->executor().enableProblemSet());
+    showHideMessagesTab(ui->tabProblem, pSettings->ui().showProblem()
+                        && pSettings->executor().enableProblemSet());
+
     ui->actionInterrupt->setVisible(pSettings->debugger().useGDBServer());
     //icon sets for editors
     updateEditorSettings();
@@ -1183,7 +1176,6 @@ void MainWindow::openProject(const QString &filename, bool openFiles)
 
 void MainWindow::changeOptions(const QString &widgetName, const QString &groupName)
 {
-    bool oldCodeCompletion = pSettings->codeCompletion().enabled();
     PSettingsDialog settingsDialog = SettingsDialog::optionDialog();
     if (!groupName.isEmpty()) {
         settingsDialog->setCurrentWidget(widgetName, groupName);
@@ -1195,16 +1187,13 @@ void MainWindow::changeOptions(const QString &widgetName, const QString &groupNa
         return;
     }
 
-    bool newCodeCompletion = pSettings->codeCompletion().enabled();
-    if (!oldCodeCompletion && newCodeCompletion) {
-        Editor *e = mEditorList->getEditor();
-        if (mProject && !e) {
-            scanActiveProject(true);
-        } else if (mProject && e && e->inProject()) {
-            scanActiveProject(true);
-        } else if (e) {
-            e->reparse();
-        }
+    Editor *e = mEditorList->getEditor();
+    if (mProject && !e) {
+        scanActiveProject(true);
+    } else if (mProject && e && e->inProject()) {
+        scanActiveProject(true);
+    } else if (e) {
+        e->reparse();
     }
 
 }
@@ -2022,6 +2011,8 @@ void MainWindow::scanActiveProject(bool parse)
 {
     if (!mProject)
         return;
+    mProject->cppParser()->setEnabled(pSettings->codeCompletion().enabled());
+
     //UpdateClassBrowsing;
     if (parse) {
         resetCppParser(mProject->cppParser(),mProject->options().compilerSet);
