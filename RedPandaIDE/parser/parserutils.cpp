@@ -324,7 +324,7 @@ void initParser()
 }
 
 QString getHeaderFilename(const QString &relativeTo, const QString &line,
-                          const QStringList& includePaths, const QStringList& projectIncludePaths) {
+                          const QSet<QString>& includePaths, const QSet<QString>& projectIncludePaths) {
     QString result = "";
 
     // Handle <>
@@ -371,7 +371,7 @@ QString getLocalHeaderFilename(const QString &relativeTo, const QString &fileNam
     return "";
 }
 
-QString getSystemHeaderFilename(const QString &fileName, const QStringList& includePaths)
+QString getSystemHeaderFilename(const QString &fileName, const QSet<QString>& includePaths)
 {
 
     // Search compiler include directories
@@ -631,3 +631,47 @@ bool isCppControlKeyword(const QString &word)
 {
     return CppControlKeyWords.contains(word);
 }
+
+int findLastOperator(const QString &phrase)
+{
+    int i = phrase.length()-1;
+
+    // Obtain stuff after first operator
+    while (i>=0) {
+        if ((i+1<phrase.length()) &&
+                (phrase[i + 1] == '>') && (phrase[i] == '-'))
+            return i;
+        else if ((i+1<phrase.length()) &&
+                 (phrase[i + 1] == ':') && (phrase[i] == ':'))
+            return i;
+        else if (phrase[i] == '.')
+            return i;
+        i--;
+    }
+    return -1;
+}
+
+bool isIncludeLine(const QString &line)
+{
+    QString trimmedLine = line.trimmed();
+    if ((trimmedLine.length() > 0)
+            && trimmedLine.startsWith('#')) { // it's a preprocessor line
+        if (trimmedLine.mid(1).trimmed().startsWith("include"))
+            return true;
+    }
+    return false;
+}
+
+QString getScopePrefix(const PStatement& statement){
+    switch (statement->classScope) {
+    case StatementClassScope::scsPublic:
+        return "public";
+    case StatementClassScope::scsPrivate:
+        return "private";
+    case StatementClassScope::scsProtected:
+        return "protected";
+    default:
+        return "";
+    }
+}
+

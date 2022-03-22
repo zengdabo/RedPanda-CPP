@@ -36,8 +36,27 @@ public:
     ~CppParser();
 
     void parseFile(const QString& fileName, bool inProject,
-                   const QMap<QString,QString>& unmodifiedFiles,
                    bool onlyIfNotParsed = false, bool updateView = true);
+
+    bool freeze();
+    bool freeze(const QString& serialId);
+    void unFreeze();
+
+    void addIncludePaths(const QStringList &paths);
+    void addProjectIncludePaths(const QStringList &paths);
+    void addProjectFiles(const QStringList &files);
+    QString getHeaderFileName(const QString& relativeTo, const QString& line);// both
+    bool isProjectHeaderFile(const QString& fileName);
+    bool isSystemHeaderFile(const QString &fileName);
+
+    int parserId() const;
+
+    bool enabled() const;
+    void setEnabled(bool newEnabled);
+
+    void reset();
+
+    bool parsing() const;
 
     //class browser
 
@@ -49,111 +68,17 @@ public:
 
     //syntax coloring
 
-
+    StatementKind  getStatementKindAt(const QString& filename, const int line, const int ch);
 
     //syntax checking
 
-    void addFileToScan(const QString& value, bool inProject = false);
-    void addIncludePath(const QString& value);
-    void addProjectIncludePath(const QString& value);
-    void clearIncludePaths();
-    void clearProjectIncludePaths();
-    void clearProjectFiles();
-    QList<PStatement> getListOfFunctions(const QString& fileName,
-                             const QString& phrase,
-                             int line);
-    PStatement findAndScanBlockAt(const QString& filename, int line);
-    PFileIncludes findFileIncludes(const QString &filename, bool deleteIt = false);
-    QString findFirstTemplateParamOf(const QString& fileName,
-                                     const QString& phrase,
-                                     const PStatement& currentScope);
-    PStatement findFunctionAt(const QString& fileName,
-                            int line);
-    int findLastOperator(const QString& phrase) const;
-    PStatementList findNamespace(const QString& name); // return a list of PSTATEMENTS (of the namespace)
-    PStatement findStatement(const QString& fullname);
-    PStatement findStatementOf(const QString& fileName,
-                               const QString& phrase,
-                               int line);
-    PStatement findStatementOf(const QString& fileName,
-                               const QString& phrase,
-                               const PStatement& currentScope,
-                               PStatement& parentScopeType,
-                               bool force = false);
-    PStatement findStatementOf(const QString& fileName,
-                               const QString& phrase,
-                               const PStatement& currentClass,
-                               bool force = false);
-
-    PStatement findStatementOf(const QString& fileName,
-                               const QStringList& expression,
-                               const PStatement& currentScope);
-    PStatement findStatementOf(const QString& fileName,
-                               const QStringList& expression,
-                               int line);
-    PStatement findAliasedStatement(const PStatement& statement);
-
-    /**
-     * @brief evaluate the expression
-     * @param fileName
-     * @param expression
-     * @param currentScope
-     * @return the statement of the evaluation result
-     */
-    PEvalStatement evalExpression(const QString& fileName,
-                               const QStringList& expression,
-                               const PStatement& currentScope);
-    PStatement findTypeDefinitionOf(const QString& fileName,
-                                    const QString& aType,
-                                    const PStatement& currentClass);
-    PStatement findTypeDef(const PStatement& statement,
-                          const QString& fileName);
-    bool freeze();  // Freeze/Lock (stop reparse while searching)
-    bool freeze(const QString& serialId);  // Freeze/Lock (stop reparse while searching)
-    QStringList getClassesList();
-    QSet<QString> getFileDirectIncludes(const QString& filename);
-    QSet<QString> getFileIncludes(const QString& filename);
-    QSet<QString> getFileUsings(const QString& filename);
-
-    QString getHeaderFileName(const QString& relativeTo, const QString& line);// both
-
-    void invalidateFile(const QString& fileName);
-    bool isIncludeLine(const QString &line);
-    bool isProjectHeaderFile(const QString& fileName);
-    bool isSystemHeaderFile(const QString& fileName);
-    void parseFile(const QString& fileName, bool inProject,
-                   bool onlyIfNotParsed = false, bool updateView = true);
     void parseFileList(bool updateView = true);
-    void parseHardDefines();
-    bool parsing() const;
-    void reset();
-    void unFreeze(); // UnFree/UnLock (reparse while searching)
-    QSet<QString> scannedFiles();
 
     QString prettyPrintStatement(const PStatement& statement, const QString& filename, int line = -1);
 
-    bool enabled() const;
-    void setEnabled(bool newEnabled);
-
-    const QSet<QString> &filesToScan() const;
-    void setFilesToScan(const QSet<QString> &newFilesToScan);
-
     void setOnGetFileStream(const GetFileStreamCallBack &newOnGetFileStream);
 
-    int parserId() const;
 
-    const QString &serialId() const;
-
-    bool parseLocalHeaders() const;
-    void setParseLocalHeaders(bool newParseLocalHeaders);
-
-    bool parseGlobalHeaders() const;
-    void setParseGlobalHeaders(bool newParseGlobalHeaders);
-
-    const QSet<QString>& includePaths();
-    const QSet<QString>& projectIncludePaths();
-
-    const StatementModel &statementList() const;
 
 signals:
     void onProgress(const QString& fileName, int total, int current);
@@ -161,333 +86,37 @@ signals:
     void onStartParsing();
     void onEndParsing(int total, int updateView);
 private:
-    PStatement addInheritedStatement(
-            const PStatement& derived,
-            const PStatement& inherit,
-            StatementClassScope access);
+    void clearIndex();
 
-    PStatement addChildStatement(
-            // support for multiple parents (only typedef struct/union use multiple parents)
-            const PStatement& parent,
-            const QString& fileName,
-            const QString& hintText,
-            const QString& aType, // "Type" is already in use
-            const QString& command,
-            const QString& args,
-            const QString& value,
-            int line,
-            StatementKind kind,
-            const StatementScope& scope,
-            const StatementClassScope& classScope,
-            bool isDefinition,
-            bool isStatic); // TODO: InheritanceList not supported
-    PStatement addStatement(
-            const PStatement& parent,
-            const QString &fileName,
-            const QString &hintText,
-            const QString &aType, // "Type" is already in use
-            const QString &command,
-            const QString &args,
-            const QString& value,
-            int line,
-            StatementKind kind,
-            const StatementScope& scope,
-            const StatementClassScope& classScope,
-            bool isDefinition,
-            bool isStatic);
-    void setInheritance(int index, const PStatement& classStatement, bool isStruct);
-    bool isCurrentScope(const QString& command);
-    void addSoloScopeLevel(PStatement& statement, int line, bool shouldResetBlock = true); // adds new solo level
-    void removeScopeLevel(int line); // removes level
-    int skipBraces(int startAt);
-    int skipBracket(int startAt);
+    bool isIdentifier(const QString& token) const {
+        return (!token.isEmpty() && isLetterChar(token.front())
+                && !token.contains('\"'));
+    }
 
-    void internalClear();
-
-    bool checkForCatchBlock();
-    bool checkForEnum();
-    bool checkForForBlock();
-    bool checkForKeyword();
-    bool checkForMethod(QString &sType, QString &sName, QString &sArgs,
-                        bool &isStatic, bool &isFriend); // caching of results
-    bool checkForNamespace();
-    bool checkForPreprocessor();
-    bool checkForScope();
-    void checkForSkipStatement();
-    bool checkForStructs();
-    bool checkForTypedef();
-    bool checkForTypedefEnum();
-    bool checkForTypedefStruct();
-    bool checkForUsing();
-    bool checkForVar();
-    QString expandMacroType(const QString& name);
-    //{procedure ResetDefines;}
-    void fillListOfFunctions(const QString& fileName, int line,
-                             const PStatement& statement,
-                             const PStatement& scopeStatement, QStringList& list);
-    QList<PStatement> getListOfFunctions(const QString& fileName, int line,
-                                         const PStatement& statement,
-                                         const PStatement& scopeStatement);
-    PStatement findMemberOfStatement(
-            const QString& phrase,
-            const PStatement& scopeStatement);
-    QList<PStatement> findMembersOfStatement(const QString& phrase,
-                                             const PStatement& scopeStatement);
-    PStatement findStatementInScope(
-            const QString& name,
-            const QString& noNameArgs,
-            StatementKind kind,
-            const PStatement& scope);
-    PStatement findStatementInScope(
-            const QString& name,
-            const PStatement& scope);
-    PStatement findStatementInNamespace(
-            const QString& name,
-            const QString& namespaceName);
-
-    //{Find statement starting from startScope}
-    PStatement findStatementStartingFrom(const QString& fileName,
-                                         const QString& phrase,
-                                         const PStatement& startScope);
-
-
-    /**
-     * @brief evaluate the expression (starting from pos) in the scope
-     * @param fileName
-     * @param phraseExpression
-     * @param pos
-     * @param scope
-     * @param previousResult the result of evalution for expression from 0 to pos-1
-     * @param freeScoped if the expression left is
-     * @return
-     */
-    PEvalStatement doEvalExpression(const QString& fileName,
-                               const QStringList& phraseExpression,
-                               int &pos,
-                               const PStatement& scope,
-                               const PEvalStatement& previousResult,
-                               bool freeScoped);
-
-    PEvalStatement doEvalPointerArithmetic(
-            const QString& fileName,
-            const QStringList& phraseExpression,
-            int &pos,
-            const PStatement& scope,
-            const PEvalStatement& previousResult,
-            bool freeScoped);
-    PEvalStatement doEvalPointerToMembers(
-            const QString& fileName,
-            const QStringList& phraseExpression,
-            int &pos,
-            const PStatement& scope,
-            const PEvalStatement& previousResult,
-            bool freeScoped);
-    PEvalStatement doEvalCCast(
-            const QString& fileName,
-            const QStringList& phraseExpression,
-            int &pos,
-            const PStatement& scope,
-            const PEvalStatement& previousResult,
-            bool freeScoped);
-    PEvalStatement doEvalMemberAccess(
-            const QString& fileName,
-            const QStringList& phraseExpression,
-            int &pos,
-            const PStatement& scope,
-            const PEvalStatement& previousResult,
-            bool freeScoped);
-    PEvalStatement doEvalScopeResolution(
-            const QString& fileName,
-            const QStringList& phraseExpression,
-            int &pos,
-            const PStatement& scope,
-            const PEvalStatement& previousResult,
-            bool freeScoped);
-    PEvalStatement doEvalTerm(
-            const QString& fileName,
-            const QStringList& phraseExpression,
-            int &pos,
-            const PStatement& scope,
-            const PEvalStatement& previousResult,
-            bool freeScoped);
-
-    PEvalStatement doCreateEvalNamespace(const PStatement& namespaceStatement);
-
-    PEvalStatement doCreateEvalType(const QString& fileName,const PStatement& typeStatement);
-    PEvalStatement doCreateEvalType(const QString& primitiveType);
-
-    PEvalStatement doCreateEvalVariable(const QString& fileName, PStatement varStatement);
-    PEvalStatement doCreateEvalFunction(const QString& fileName, PStatement funcStatement);
-    PEvalStatement doCreateEvalLiteral(const QString& type);
-    void  doSkipInExpression(const QStringList& expression, int&pos, const QString& startSymbol, const QString& endSymbol);
-    bool isIdentifier(const QString& token) const;
-    bool isIntegerLiteral(const QString& token) const;
-    bool isFloatLiteral(const QString& token) const;
-    bool isStringLiteral(const QString& token) const;
-    bool isCharLiteral(const QString& token) const;
-    PStatement doParseEvalTypeInfo(
-            const QString& fileName,
-            const PStatement& scope,
-            const QString& type,
-            QString& baseType,
-            int& pointerLevel);
-
-    int getBracketEnd(const QString& s, int startAt);
-    StatementClassScope getClassScope(int index);
-    int getCurrentBlockBeginSkip();
-    int getCurrentBlockEndSkip();
-    int getCurrentInlineNamespaceEndSkip();
-    PStatement getCurrentScope(); // gets last item from last level
-    QString getFirstTemplateParam(const PStatement& statement, const QString& filename,
-                                  const QString& phrase, const PStatement& currentScope);
-    int getFirstTemplateParamEnd(const QString& s, int startAt);
-
-    void getFullNamespace(
-            const QString& phrase,
-            QString& sNamespace,
-            QString& member);
-    QString getFullStatementName(
-            const QString& command,
-            const PStatement& parent);
-    PStatement getIncompleteClass(
-            const QString& command,
-            const PStatement& parentScope);
-    QString getScopePrefix(const PStatement& statement);
-    StatementScope  getScope();
-    QString getStatementKey(const QString& sName,
-                            const QString& sType,
-                            const QString& sNoNameArgs);
-    PStatement getTypeDef(const PStatement& statement,
-                          const QString& fileName, const QString& aType);
-    void handleCatchBlock();
-    void handleEnum();
-    void handleForBlock();
-    void handleKeyword();
-    void handleMethod(
-            const QString& sType,
-            const QString& sName,
-            const QString& sArgs,
-            bool isStatic,
-            bool isFriend);
-    void handleNamespace();
-    void handleOtherTypedefs();
-    void handlePreprocessor();
-    void handleScope();
-    bool handleStatement();
-    void handleStructs(bool isTypedef = false);
-    void handleUsing();
-    void handleVar();
-    void internalParse(const QString& fileName);
-//    function FindMacroDefine(const Command: AnsiString): PStatement;
-    void inheritClassStatement(
-            const PStatement& derived,
-            bool isStruct,
-            const PStatement& base,
-            StatementClassScope access);
-    PStatement doFindStatementInScope(const QString& name,
-                                      const QString& noNameArgs,
-                                      StatementKind kind,
-                                      const PStatement& scope);
-    void internalInvalidateFile(const QString& fileName);
-    void internalInvalidateFiles(const QSet<QString>& files);
-    QSet<QString> calculateFilesToBeReparsed(const QString& fileName);
-    int calcKeyLenForStruct(const QString& word);
-//    {
-//    function GetClass(const Phrase: AnsiString): AnsiString;
-//    function GetMember(const Phrase: AnsiString): AnsiString;
-//    function GetOperator(const Phrase: AnsiString): AnsiString;
-//    function GetRemainder(const Phrase: AnsiString): AnsiString;
-//    }
-    void scanMethodArgs(
-            const PStatement& functionStatement,
-            const QString& argStr);
-    QString splitPhrase(const QString& phrase, QString& sClazz, QString &sMember,
-                QString& sOperator);
-
-    QString removeArgNames(const QString& args);
-
-    bool isSpaceChar(const QChar& ch) const;
-
-    bool isWordChar(const QChar& ch) const;
-
-    bool isLetterChar(const QChar& ch) const;
-
-    bool isDigitChar(const QChar& ch) const;
-
-    /*'(', ';', ':', '{', '}', '#' */
-    bool isSeperator(const QChar& ch) const;
-
-    /*';', '{', '}'*/
-    bool isblockChar(const QChar& ch) const;
-
-    /* '#', ',', ';', ':', '{', '}', '!', '/', '+', '-', '<', '>' */
-    bool isInvalidVarPrefixChar(const QChar& ch) const;
-
-    /*'{', '}' */
-    bool isBraceChar(const QChar& ch) const;
-
-    bool isLineChar(const QChar& ch) const;
-
-    bool isNotFuncArgs(const QString& args);
-
-    /**
-     * @brief Test if a statement is a class/struct/union/namespace/function
-     * @param kind
-     * @return
-     */
-    bool isNamedScope(StatementKind kind) const;
-
-    /**
-     * @brief Test if a statement is a class/struct/union/enum/enum class/typedef
-     * @param kind
-     * @return
-     */
-    bool isTypeStatement(StatementKind kind) const;
+    bool isLetterChar(const QChar& ch) const {
+        return ch.isLetter() || ch == '_';
+    }
 
     void updateSerialId();
-
 
 private:
     int mParserId;
     int mSerialCount;
     QString mSerialId;
-    int mUniqId;
     bool mEnabled;
 
     CXIndex mIndex;
 
     QMap<QString,CXTranslationUnit> mTranslationUnits;
 
-//  stack list , each element is a list of one/many scopes(like intypedef struct  s1,s2;
-//  It's used for store scope nesting infos
-    QVector<PStatement> mCurrentScope;
-    QVector<StatementClassScope> mCurrentClassScope;
-
-//  the start index in tokens to skip to ; when parsing typedef struct we need to skip
-//   the names after the closing bracket because we have processed it
-    QVector<int> mSkipList; // TList<Integer>
-    StatementClassScope mClassScope;
-    StatementModel mStatementList;
-    //It's used in preprocessor, so we can't use fIncludeList instead
-
-    CppTokenizer mTokenizer;
-    CppPreprocessor mPreprocessor;
-    //{ List of current project's file }
+    QSet<QString> mIncludePaths;
+    QSet<QString> mProjectIncludePaths;
     QSet<QString> mProjectFiles;
-    QVector<int> mBlockBeginSkips; //list of for/catch block begin token index;
-    QVector<int> mBlockEndSkips; //list of for/catch block end token index;
-    QVector<int> mInlineNamespaceEndSkips; // list for inline namespace end token index;
-    QSet<QString> mFilesToScan; // list of base files to scan
-    int mFilesScannedCount; // count of files that have been scanned
-    int mFilesToScanCount; // count of files and files included in files that have to be scanned
-    bool mParseLocalHeaders;
-    bool mParseGlobalHeaders;
-    bool mIsProjectFile;
+
+    //{ List of current project's file }
     //fMacroDefines : TList;
     int mLockCount; // lock(don't reparse) when we need to find statements in a batch
     bool mParsing;
-    QHash<QString,PStatementList> mNamespaces;  //TStringList<String,List<Statement>> namespace and the statements in its scope
-    QSet<QString> mInlineNamespaces;
     //fRemovedStatements: THashedStringList; //THashedStringList<String,PRemovedStatements>
 
     QMutex mMutex;

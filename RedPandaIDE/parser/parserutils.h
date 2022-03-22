@@ -252,11 +252,11 @@ extern QSet<QString> MemberOperators;
 void initParser();
 
 QString getHeaderFilename(const QString& relativeTo, const QString& line,
-                       const QStringList& includePaths, const QStringList& projectIncludePaths);
+                       const QSet<QString>& includePaths, const QSet<QString>& projectIncludePaths);
 
 QString getLocalHeaderFilename(const QString& relativeTo, const QString& fileName);
 
-QString getSystemHeaderFilename(const QString& fileName, const QStringList& includePaths);
+QString getSystemHeaderFilename(const QString& fileName, const QSet<QString>& includePaths);
 bool isSystemHeaderFile(const QString& fileName, const QSet<QString>& includePaths);
 bool isHFile(const QString& filename);
 bool isCFile(const QString& filename);
@@ -271,5 +271,8 @@ QStringList getOwnerExpressionAndMember(
         QStringList& memberExpression);
 bool isMemberOperator(QString token);
 StatementKind getKindOfStatement(const PStatement& statement);
+int findLastOperator(const QString& phrase);
+bool isIncludeLine(const QString &line);
+QString getScopePrefix(const PStatement& statement);
 
 #endif // PARSER_UTILS_H
