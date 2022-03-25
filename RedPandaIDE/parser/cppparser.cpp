@@ -208,7 +208,6 @@ StatementKind CppParser::getStatementKindAt(const QString &filename, const int l
     CXFile file = clang_getFile(unit,filename.toLocal8Bit().data());
     CXSourceLocation sourceLocation = clang_getLocation(unit,file,line,ch);
     CXCursor cursor = clang_getCursor(unit,sourceLocation);
-    switch (clang_getCursorKind())
 }
 
 void CppParser::reset()
