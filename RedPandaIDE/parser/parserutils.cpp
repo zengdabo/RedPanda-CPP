@@ -631,3 +631,27 @@ bool isCppControlKeyword(const QString &word)
 {
     return CppControlKeyWords.contains(word);
 }
+
+bool statementHasChildren(PStatement statement)
+{
+    if (!isBlockStatement(statement))
+        return false;
+    return !getStatementChildren(statement).isEmpty();
+}
+
+bool isBlockStatement(StatementKind kind)
+{
+    switch (kind) {
+    case StatementKind::skBlock:
+    case StatementKind::skClass:
+    case StatementKind::skNamespace:
+    case StatementKind::skEnumClassType:
+    case StatementKind::skEnumType:
+    case StatementKind::skFunction:
+    case StatementKind::skConstructor:
+    case StatementKind::skDestructor:
+        return true;
+    default:
+        return false;
+    }
+}

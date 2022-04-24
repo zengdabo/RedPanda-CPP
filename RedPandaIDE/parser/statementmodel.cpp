@@ -31,7 +31,7 @@ void StatementModel::add(const PStatement& statement)
     }
     PStatement parent = statement->parentScope.lock();
     if (parent) {
-        addMember(parent->children,statement);
+        addMember(getStatementChildren(parent),statement);
     } else {
         addMember(mGlobalStatements,statement);
     }
@@ -50,7 +50,7 @@ void StatementModel::deleteStatement(const PStatement& statement)
     PStatement parent = statement->parentScope.lock();
     int count = 0;
     if (parent) {
-        count = deleteMember(parent->children,statement);
+        count = deleteMember(getStatementChildren(parent),statement);
     } else {
         count = deleteMember(mGlobalStatements,statement);
     }
@@ -66,7 +66,7 @@ const StatementMap &StatementModel::childrenStatements(const PStatement& stateme
     if (!statement) {
         return mGlobalStatements;
     } else {
-        return statement->children;
+        return getStatementChildren(statement);
     }
 }
 
@@ -147,10 +147,10 @@ void StatementModel::dumpStatementMap(StatementMap &map, QTextStream &out, int l
          .arg(statement->definitionFileName)
          .arg(statement->definitionLine);
         out<<endl;
-        if (statement->children.isEmpty())
+        if (getStatementChildren(statement).isEmpty())
             continue;
         out<<indent<<statement->command<<" {"<<endl;
-        dumpStatementMap(statement->children,out,level+1);
+        dumpStatementMap(getStatementChildren(statement),out,level+1);
         out<<indent<<"}"<<endl;
     }
 }

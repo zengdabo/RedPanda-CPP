@@ -138,6 +138,7 @@ using PStatement = std::shared_ptr<Statement>;
 using StatementList = QList<PStatement>;
 using PStatementList = std::shared_ptr<StatementList>;
 using StatementMap = QMultiMap<QString, PStatement>;
+
 struct Statement {
     std::weak_ptr<Statement> parentScope; // parent class/struct/namespace scope, don't use auto pointer to prevent circular reference
     QString type; // type "int"
@@ -155,12 +156,9 @@ struct Statement {
     QString definitionFileName; // definition
     bool inProject; // statement in project
     bool inSystemHeader; // statement in system header (#include <>)
-    StatementMap children; // functions can be overloaded,so we use list to save children with the same name
-    QSet<QString> friends; // friend class / functions
     bool isStatic; // static function / variable
     bool isInherited; // inherted member;
     QString fullName; // fullname(including class and namespace), ClassA::foo
-    QSet<QString> usingList; // using namespaces
     QString noNameArgs;// Args without name
     // fields for code completion
     int usageCount; //Usage Count
@@ -169,6 +167,12 @@ struct Statement {
     int firstMatchLength; // length of first match;
     int caseMatched; // if match with case
     QList<PStatementMathPosition> matchPositions;
+};
+
+struct BlockStatement: public Statement {
+    QSet<QString> usingList; // using namespaces
+    StatementMap children; // functions can be overloaded,so we use list to save children with the same name
+    QSet<QString> friends; // friend class / functions
 };
 
 struct EvalStatement;
@@ -267,5 +271,22 @@ QStringList getOwnerExpressionAndMember(
         QStringList& memberExpression);
 bool isMemberOperator(QString token);
 StatementKind getKindOfStatement(const PStatement& statement);
+bool isBlockStatement(StatementKind kind);
+inline bool isBlockStatement(PStatement statement) {
+    return isBlockStatement(statement->kind);
+}
+bool statementHasChildren(PStatement statement);
+
+inline StatementMap& getStatementChildren(PStatement statement) {
+    return ((BlockStatement*)statement.get())->children;
+}
+
+inline QSet<QString>& getStatementUsingList(PStatement statement) {
+    return ((BlockStatement*)statement.get())->usingList;
+}
+
+inline QSet<QString>& getStatementFriends(PStatement statement) {
+    return ((BlockStatement*)statement.get())->friends;
+}
 
 #endif // PARSER_UTILS_H

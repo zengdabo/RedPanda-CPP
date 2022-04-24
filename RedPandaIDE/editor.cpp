@@ -607,7 +607,7 @@ void Editor::keyPressEvent(QKeyEvent *event)
                     QStringList params;
                     QString funcName = function->command;
                     bool isVoid = (function->type  == "void");
-                    foreach (const PStatement& child, function->children) {
+                    foreach (const PStatement& child, getStatementChildren(function)) {
                         if (child->kind == StatementKind::skParameter)
                             params.append(child->command);
                     }

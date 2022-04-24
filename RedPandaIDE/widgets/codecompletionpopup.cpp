@@ -591,7 +591,7 @@ void CodeCompletionPopup::getCompletionFor(
                 }
 
                 // add members of all usings (in current scope ) and not added before
-                foreach (const QString& namespaceName,scopeStatement->usingList) {
+                foreach (const QString& namespaceName, getStatementUsingList(scopeStatement)) {
                     PStatementList namespaceStatementsList =
                             mParser->findNamespace(namespaceName);
                     if (!namespaceStatementsList)

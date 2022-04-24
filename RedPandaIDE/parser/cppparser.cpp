@@ -518,7 +518,7 @@ PStatement CppParser::findStatementStartingFrom(const QString &fileName, const Q
             return result;
         // not found
         // search members of all usings (in current scope )
-        foreach (const QString& namespaceName, scopeStatement->usingList) {
+        foreach (const QString& namespaceName, getStatementUsingList(scopeStatement)) {
             result = findStatementInNamespace(phrase,namespaceName);
             if (result)
                 return result;
@@ -621,7 +621,7 @@ QStringList CppParser::getClassesList()
         for (PStatement& child:statementMap) {
             if (child->kind == StatementKind::skClass)
                 list.append(child->command);
-            if (!child->children.isEmpty())
+            if (isBlockStatement(child))
                 queue.enqueue(child);
         }
     }
@@ -1184,7 +1184,12 @@ PStatement CppParser::addStatement(const PStatement& parent,
             }
         }
     }
-    PStatement result = std::make_shared<Statement>();
+    PStatement result;
+    if (isBlockStatement(kind)) {
+        result = std::make_shared<BlockStatement>();
+    } else {
+        result = std::make_shared<Statement>();
+    }
     result->parentScope = parent;
     result->type = newType;
     if (!newCommand.isEmpty())
@@ -1337,7 +1342,7 @@ void CppParser::removeScopeLevel(int line)
     PStatement currentScope = mCurrentScope.back();;
     PFileIncludes fileIncludes = mPreprocessor.includesList().value(mCurrentFile);
     if (currentScope && (currentScope->kind == StatementKind::skBlock)) {
-        if (currentScope->children.isEmpty()) {
+        if (!statementHasChildren(currentScope)) {
             // remove no children block
             if (fileIncludes) {
                 fileIncludes->scopes.removeLastScope();
@@ -2191,7 +2196,7 @@ void CppParser::handleMethod(const QString &sType, const QString &sName, const Q
         } else
             scopelessName = sName;
         //TODO : we should check namespace
-        functionClass->friends.insert(scopelessName);
+        getStatementFriends(functionClass).insert(scopelessName);
     } else if (isValid) {
         // Use the class the function belongs to as the parent ID if the function is declared outside of the class body
         int delimPos = sName.indexOf("::");
@@ -2732,7 +2737,7 @@ void CppParser::handleStructs(bool isTypedef)
             if (isFriend) { // friend class
                 PStatement parentStatement = getCurrentScope();
                 if (parentStatement) {
-                    parentStatement->friends.insert(mTokenizer[mIndex]->text);
+                    getStatementFriends(parentStatement).insert(mTokenizer[mIndex]->text);
                 }
             } else {
             // todo: Forward declaration, struct Foo. Don't mention in class browser
@@ -3022,7 +3027,7 @@ void CppParser::handleUsing()
             fullName = usingName;
         }
         if (mNamespaces.contains(fullName)) {
-            scopeStatement->usingList.insert(fullName);
+            getStatementUsingList(scopeStatement).insert(fullName);
         }
     } else {
         PFileIncludes fileInfo = mPreprocessor.includesList().value(mCurrentFile);
@@ -3275,7 +3280,7 @@ void CppParser::inheritClassStatement(const PStatement& derived, bool isStruct,
         else
             access = StatementClassScope::scsPrivate;
     }
-    foreach (const PStatement& statement, base->children) {
+    foreach (const PStatement& statement, getStatementChildren(base)) {
         if (statement->classScope == StatementClassScope::scsPrivate
                 || statement->kind == StatementKind::skConstructor
                 || statement->kind == StatementKind::skDestructor)
@@ -3346,6 +3351,8 @@ QList<PStatement> CppParser::getListOfFunctions(const QString &fileName, int lin
 PStatement CppParser::findMemberOfStatement(const QString &phrase,
                                             const PStatement& scopeStatement)
 {
+    if (scopeStatement && !isBlockStatement(scopeStatement))
+        return PStatement();
     const StatementMap& statementMap =mStatementList.childrenStatements(scopeStatement);
     if (statementMap.isEmpty())
         return PStatement();

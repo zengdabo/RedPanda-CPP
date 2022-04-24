@@ -248,8 +248,8 @@ void ClassBrowserModel::addChild(ClassBrowserNode *node, PStatement statement)
     node->children.append(newNode.get());
     mNodes.append(newNode);
     //don't show enum type's children values (they are displayed in parent scope)
-    if (statement->kind != StatementKind::skEnumType)
-        filterChildren(newNode.get(), statement->children);
+    if (isBlockStatement(statement) && statement->kind != StatementKind::skEnumType)
+        filterChildren(newNode.get(), getStatementChildren(statement));
 }
 
 void ClassBrowserModel::addMembers()
@@ -305,11 +305,11 @@ void ClassBrowserModel::filterChildren(ClassBrowserNode *node, const StatementMa
 
                 PStatement dummyParent = mDummyStatements.value(parentScope->fullName,PStatement());
                 if (dummyParent) {
-                    dummyParent->children.insert(statement->command,statement);
+                    getStatementChildren(dummyParent).insert(statement->command,statement);
                     break;
                 }
                 dummyParent = createDummy(parentScope);
-                dummyParent->children.insert(statement->command,statement);
+                getStatementChildren(dummyParent).insert(statement->command,statement);
                 //we are adding an orphan statement, just add it
                 statement = dummyParent;
                 parentScope = statement->parentScope.lock();
@@ -322,13 +322,14 @@ void ClassBrowserModel::filterChildren(ClassBrowserNode *node, const StatementMa
         } else if (statement->kind == StatementKind::skNamespace) {
             PStatement dummy = mDummyStatements.value(statement->fullName,PStatement());
             if (dummy) {
-                for (PStatement child: statement->children) {
-                    dummy->children.insert(child->command,child);
+
+                for (PStatement child: getStatementChildren( statement)) {
+                    getStatementChildren(dummy).insert(child->command,child);
                 }
                 continue;
             }
             dummy = createDummy(statement);
-            dummy->children = statement->children;
+            getStatementChildren(dummy) = getStatementChildren(statement);
             addChild(node,dummy);
         } else {
             addChild(node,statement);
@@ -361,7 +362,12 @@ void ClassBrowserModel::filterChildren(ClassBrowserNode *node, const StatementMa
 
 PStatement ClassBrowserModel::createDummy(PStatement statement)
 {
-    PStatement result = std::make_shared<Statement>();
+    PStatement result;
+    if (isBlockStatement(statement)) {
+        result = std::make_shared<BlockStatement>();
+    } else {
+        result = std::make_shared<Statement>();
+    }
     result->parentScope = statement->parentScope;
     result->command = statement->command;
     result->args = statement->args;
