@@ -10,7 +10,38 @@
  - Install qtcreator
  - Use qtcreator to open Red_Panda_CPP.pro
 
-# Linux
+# Linux  (Ubuntu/Debian)
 
- - Install gcc and qt5
- - Use qtcreator to open Red_Panda_CPP.pro
+
+## 1. install complier
+
+```text
+apt install gcc g++ make gdb gdbserver 
+```
+
+## 2. install QT5 and lib
+
+```text
+apt install qtbase5-dev qttools5-dev-tools  libicu-dev libqt5svg5-dev  git qterminal
+```
+
+## 3. download source
+
+```
+git clone https://gitee.com/royqh1979/RedPanda-CPP.git
+```
+
+### 4. compile 
+
+```
+cd cd RedPanda-CPP/
+qmake Red_Panda_CPP.pro 
+make -j8
+sudo make install
+```
+
+## 5. run
+
+```
+RedPandaIDE
+```
